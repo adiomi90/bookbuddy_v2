@@ -1,6 +1,6 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
-from app.routers import users, posts, comments
+from app.routers import users, posts, comments, auth
 from app.database.deps import engine, Base
 
 @asynccontextmanager
@@ -18,6 +18,8 @@ app = FastAPI(lifespan=lifespan, docs_url="/docs", redoc_url="/redoc")
 async def root():
     return {"message": "Welcome to BookBuddy API"}
 
+app.include_router(auth.router, prefix="/auth", tags=["authentication"])
 app.include_router(users.router, prefix="/users", tags=["users"] )
 app.include_router(posts.router, prefix="/posts", tags=["posts"] )
 app.include_router(comments.router, prefix="/comments", tags=["comments"] )
+

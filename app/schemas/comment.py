@@ -14,11 +14,11 @@ class CommentCreate(CommentBase):
     post_id: int
 
 
-class CommentUpdate(TimestampSchema, BaseModel):
+class CommentUpdate(BaseModel):
     content: Optional[str] = Field(None, min_length=1, max_length=2000)
 
 
-class CommentResponse(CommentBase):
+class CommentResponse(TimestampSchema, CommentBase):
     id: int
     user_id: int
     post_id: int

@@ -5,20 +5,7 @@ from app.models.comment import Comment
 from app.database.deps import get_db
 from app.services import comment_service
 from typing import List
-
-# temporary Dependency
-
-
-async def get_current_user_id(db: AsyncSession = Depends(get_db)) -> int:
-    from sqlalchemy import select
-    from app.models.user import User
-    result = await db.execute(select(User.id).where(User.id == 7).limit(1))
-    user_id = result.scalar_one_or_none()
-    if not user_id:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail="No user found , Please create a user")
-    return user_id
-
+from app.auth.auth_utils import get_current_user_id
 
 router = APIRouter()
 
@@ -30,12 +17,14 @@ async def create_comment(comment: CommentCreate, db: AsyncSession = Depends(get_
 
 
 @router.get("/post/{post_id}", response_model=List[CommentResponse])
-async def get_all_comments_on_post(post_id: int, skip: int = 0, limit: int = 100, db: AsyncSession = Depends(get_db)):
+async def get_all_comments_on_post(post_id: int, skip: int = 0, limit: int = 100,
+                                    db: AsyncSession = Depends(get_db), user_id: int = Depends(get_current_user_id)):
     return await comment_service.get_all_comments_for_post(db, post_id, skip, limit)
 
 
 @router.get("/{comment_id}", response_model=CommentResponse)
-async def get_comment_by_id(comment_id: int, db: AsyncSession = Depends(get_db)):
+async def get_comment_by_id(comment_id: int, db: AsyncSession = Depends(get_db),
+                             user_id: int = Depends(get_current_user_id)):
     return await comment_service.get_comment_by_id(db, comment_id)
 
 

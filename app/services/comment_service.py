@@ -24,7 +24,7 @@ async def get_comment_by_id(db: AsyncSession, comment_id: int) -> Comment | None
     stmt = (
         select(Comment)
         .where(Comment.id == comment_id))
-    
+
     result = await db.execute(stmt)
     return result.scalar_one_or_none()
 
@@ -49,7 +49,7 @@ async def update_comment(db: AsyncSession, comment_id: int, comment_update: Comm
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
                             detail="Post not found or Not Authorized")
 
-    update_data = comment.model_dump(exclude_unset=True)
+    update_data = comment_update.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(comment, field, value)
 
