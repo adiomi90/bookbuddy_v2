@@ -11,7 +11,7 @@ class Comment(Base):
 
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     post_id = Column(Integer, ForeignKey("posts.id", ondelete="CASCADE"), nullable=False)
-
+    parent_id = Column(Integer, ForeignKey("comments.id", ondelete="CASCADE"), nullable=True)
     
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True),server_default=func.now(), onupdate=func.now(), nullable=False)
@@ -19,4 +19,6 @@ class Comment(Base):
    
     owner = relationship("User", back_populates="comments")
     posts = relationship("Post", back_populates="comments")
+
+    replies = relationship("Comment", backref="parent", remote_side=[id], lazy="selectin")
    

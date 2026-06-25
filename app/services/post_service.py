@@ -14,7 +14,11 @@ async def get_all_post(db: AsyncSession, skip: int = 0, limit: int = 100) -> Lis
 
 async def get_post_by_id(db: AsyncSession, post_id: int) -> Post | None:
     result = await db.execute(select(Post).where(Post.id == post_id))
-    return result.scalar_one_or_none()
+    post = result.scalar_one_or_none()
+    if post is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail="Post not found")
+    return post
 
 
 async def create_post(db: AsyncSession, user_id: int, post: PostCreate) -> Post:
