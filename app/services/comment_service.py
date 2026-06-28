@@ -3,14 +3,21 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.comment import Comment
 from app.schemas.comment import CommentCreate, CommentUpdate
 from typing import List
-from app.services.user_service import get_user
 from fastapi import HTTPException, status
 from sqlalchemy.orm import selectinload, attributes
 
-from sqlalchemy.orm import attributes, selectinload
 
+async def get_comment_by_id(db: AsyncSession, comment_id:int) -> Comment | None:
+    stmt = select(Comment).where(Comment.id == comment_id)
+    result = await db.execute(stmt)
+    comment = result.scalar_one_or_none()
+    if comment is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                             detail="Comment not found")
+    
+    return comment
 
-async def get_comment_by_id(db: AsyncSession, comment_id: int) -> Comment | None:
+async def get_comment_by_id_with_replies(db: AsyncSession, comment_id: int) -> Comment | None:
     # 1. Get the comment itself (with owner)
     stmt = (
         select(Comment)
@@ -20,7 +27,8 @@ async def get_comment_by_id(db: AsyncSession, comment_id: int) -> Comment | None
     result = await db.execute(stmt)
     comment = result.scalar_one_or_none()
     if not comment:
-        return None
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                             detail="comment not found")
 
     # 2. Load its immediate replies (with owners)
     replies_stmt = (
@@ -117,13 +125,18 @@ async def create_comment(db: AsyncSession, comment: CommentCreate, user_id: int)
 
 async def update_comment(db: AsyncSession, comment_id: int, comment_update: CommentUpdate, user_id: int) -> Comment | None:
     comment = await get_comment_by_id(db, comment_id)
+
+   
+
     if not comment or comment.user_id != user_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
                             detail="Post not found or Not Authorized")
+    
+    #reload from db to clear nay dirty relationship
+    await db.refresh(comment)
 
-    update_data = comment_update.model_dump(exclude_unset=True)
-    for field, value in update_data.items():
-        setattr(comment, field, value)
+    if comment_update.content is not None:
+        comment.content = comment_update.content
 
     await db.commit()
     await db.refresh(comment)
@@ -132,6 +145,7 @@ async def update_comment(db: AsyncSession, comment_id: int, comment_update: Comm
 
 async def delete_comment(db: AsyncSession, comment_id: int, user_id: int) -> bool:
     comment = await get_comment_by_id(db, comment_id)
+
     if not comment or comment.user_id != user_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
                             detail="Post not found or Not Authorized")
@@ -140,10 +154,12 @@ async def delete_comment(db: AsyncSession, comment_id: int, user_id: int) -> boo
     return True
 
 
-async def delete_comment_as_admin(db: AsyncSession, comment_id: int) -> bool:
-    comment = await get_comment_by_id(db, comment_id)
+async def delete_comment_as_admin(db: AsyncSession, comment_id: int, user_id: int) -> bool:
+    stmt = select(Comment).where(Comment.id == comment_id)
+    result = await db.execute(stmt)
+    comment = result.scalar_one_or_none()
 
-    if not comment:
+    if not comment or comment.user_id != user_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail="No comment found")
     await db.delete(comment)

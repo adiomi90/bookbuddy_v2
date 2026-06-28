@@ -25,7 +25,7 @@ async def get_all_comments_on_post(post_id: int, skip: int = 0, limit: int = 100
 @router.get("/{comment_id}", response_model=CommentResponse)
 async def get_comment_by_id(comment_id: int, db: AsyncSession = Depends(get_db),
                             user_id: int = Depends(get_current_user_id)):
-    return await comment_service.get_comment_by_id(db, comment_id)
+    return await comment_service.get_comment_by_id_with_replies(db, comment_id)
 
 
 @router.patch("/{comment_id}", response_model=CommentResponseWithoutReplies)

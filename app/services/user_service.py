@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.user import User
 from app.schemas.user import UserCreate, UserUpdate
 from typing import List
+from fastapi import HTTPException, status
 
 
 async def get_user(db: AsyncSession, user_id: int) -> User | None:
@@ -51,10 +52,15 @@ async def update_user(db: AsyncSession, user_id: int, user_update: UserUpdate) -
     return db_user
 
 
-async def delete_user(db: AsyncSession, user_id: int) -> bool:
+async def delete_user(db: AsyncSession, current_user: User, user_id: int) -> bool:
+    if current_user.id != user_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                             detail="You are not authorized to delete another user's account")
+    
     db_user = await get_user(db, user_id)
     if not db_user:
-        return False
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                             detail="You are not authorized to delete another user's account")
     await db.delete(db_user)
     await db.commit()
     return True
